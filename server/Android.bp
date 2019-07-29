@@ -158,6 +158,13 @@ cc_library_static {
         export_aidl_headers: true,
         local_include_dirs: ["binder"],
     },
+    product_variables: {
+        nad: {
+            target_ignores_ftp_pptp_conntrack_failure: {
+                cppflags: ["-DIGNORES_FTP_PPTP_CONNTRACK_FAILURE"],
+            },
+        },
+    },
 }
 
 cc_binary {
