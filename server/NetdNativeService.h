@@ -241,6 +241,8 @@ class NetdNativeService : public BinderService<NetdNativeService>, public BnNetd
 
     // Strict-related commands
     binder::Status strictUidCleartextPenalty(int32_t uid, int32_t policyPenalty) override;
+    binder::Status strictGlobalCleartextPenalty(int32_t policyPenalty) override;
+    binder::Status strictDNSCleartextWhitelist(const std::vector<std::string>& dnsAddrs) override;
 
     // Clatd-related commands
     binder::Status clatdStart(const std::string& ifName, const std::string& nat64Prefix,

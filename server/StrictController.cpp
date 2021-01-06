@@ -38,6 +38,7 @@ auto StrictController::execIptablesRestore = ::execIptablesRestore;
 const char* StrictController::LOCAL_OUTPUT = "st_OUTPUT";
 const char* StrictController::LOCAL_CLEAR_DETECT = "st_clear_detect";
 const char* StrictController::LOCAL_CLEAR_CAUGHT = "st_clear_caught";
+const char* StrictController::LOCAL_CLEAR_CAUGHT_DNS_ACCEPT = "st_clear_caught_dns_accept";
 const char* StrictController::LOCAL_PENALTY_LOG = "st_penalty_log";
 const char* StrictController::LOCAL_PENALTY_REJECT = "st_penalty_reject";
 
@@ -148,12 +149,36 @@ int StrictController::resetChains(void) {
         CLEAR_CHAIN(LOCAL_PENALTY_LOG),
         CLEAR_CHAIN(LOCAL_PENALTY_REJECT),
         CLEAR_CHAIN(LOCAL_CLEAR_CAUGHT),
+        CLEAR_CHAIN(LOCAL_CLEAR_CAUGHT_DNS_ACCEPT),
         CLEAR_CHAIN(LOCAL_CLEAR_DETECT),
         "COMMIT\n"
     };
     const std::string commands = Join(commandList, '\n');
     return (execIptablesRestore(V4V6, commands) == 0) ? 0 : -EREMOTEIO;
 #undef CLEAR_CHAIN
+}
+
+int StrictController::setGlobalCleartextPenalty(StrictPenalty penalty) {
+    std::vector<std::string> commands;
+    commands.push_back("*filter");
+    commands.push_back(StringPrintf(":%s -", LOCAL_CLEAR_CAUGHT));
+    commands.push_back(StringPrintf("-F %s", LOCAL_CLEAR_CAUGHT));
+    commands.push_back(StringPrintf("-F %s", LOCAL_OUTPUT));
+    if (penalty != ACCEPT) {
+        commands.push_back(StringPrintf(":%s -", LOCAL_CLEAR_CAUGHT));
+        commands.push_back(StringPrintf("-A %s -j %s", LOCAL_OUTPUT, LOCAL_CLEAR_DETECT));
+        commands.push_back(StringPrintf("-A %s -j %s", LOCAL_CLEAR_CAUGHT, LOCAL_CLEAR_CAUGHT_DNS_ACCEPT));
+
+        if (penalty == LOG) {
+            commands.push_back(StringPrintf("-A %s -j %s", LOCAL_CLEAR_CAUGHT, LOCAL_PENALTY_LOG));
+        } else if (penalty == REJECT) {
+            commands.push_back(StringPrintf("-A %s -j %s", LOCAL_CLEAR_CAUGHT,
+                                            LOCAL_PENALTY_REJECT));
+        }
+    }
+    commands.push_back("COMMIT\n");
+
+    return (execIptablesRestore(V4V6, Join(commands, "\n")) == 0) ? 0 : -EREMOTEIO;
 }
 
 int StrictController::setUidCleartextPenalty(uid_t uid, StrictPenalty penalty) {
@@ -195,4 +220,17 @@ int StrictController::setUidCleartextPenalty(uid_t uid, StrictPenalty penalty) {
     commands.push_back("COMMIT\n");
 
     return (execIptablesRestore(V4V6, Join(commands, "\n")) == 0) ? 0 : -EREMOTEIO;
+}
+
+int StrictController::setDNSCleartextWhitelist(const std::vector<std::string>& servers) {
+    std::vector<std::string> commands;
+    commands.push_back("*filter");
+    commands.push_back(StringPrintf("-F %s", LOCAL_CLEAR_CAUGHT_DNS_ACCEPT));
+    for (const auto& server : servers) {
+        commands.push_back(StringPrintf("-I %s -d %s -p udp --dport 53 -j %s",
+                                        LOCAL_CLEAR_CAUGHT_DNS_ACCEPT, server.c_str(), "ACCEPT"));
+    }
+    commands.push_back("COMMIT\n");
+
+    return (execIptablesRestore(V4, Join(commands, "\n")) == 0) ? 0 : -EREMOTEIO;
 }

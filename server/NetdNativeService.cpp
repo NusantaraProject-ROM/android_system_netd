@@ -783,6 +783,27 @@ binder::Status NetdNativeService::idletimerRemoveInterface(const std::string& if
     return statusFromErrcode(res);
 }
 
+binder::Status NetdNativeService::strictGlobalCleartextPenalty(int32_t policyPenalty) {
+    NETD_LOCKING_RPC(gCtls->strictCtrl.lock, PERM_NETWORK_STACK, PERM_MAINLINE_NETWORK_STACK);
+    StrictPenalty penalty;
+    switch (policyPenalty) {
+        case INetd::PENALTY_POLICY_REJECT:
+            penalty = REJECT;
+            break;
+        case INetd::PENALTY_POLICY_LOG:
+            penalty = LOG;
+            break;
+        case INetd::PENALTY_POLICY_ACCEPT:
+            penalty = ACCEPT;
+            break;
+        default:
+            return statusFromErrcode(-EINVAL);
+            break;
+    }
+    int res = gCtls->strictCtrl.setGlobalCleartextPenalty(penalty);
+    return statusFromErrcode(res);
+}
+
 binder::Status NetdNativeService::strictUidCleartextPenalty(int32_t uid, int32_t policyPenalty) {
     NETD_LOCKING_RPC(gCtls->strictCtrl.lock, PERM_NETWORK_STACK, PERM_MAINLINE_NETWORK_STACK);
     StrictPenalty penalty;
@@ -801,6 +822,12 @@ binder::Status NetdNativeService::strictUidCleartextPenalty(int32_t uid, int32_t
             break;
     }
     int res = gCtls->strictCtrl.setUidCleartextPenalty((uid_t) uid, penalty);
+    return statusFromErrcode(res);
+}
+
+binder::Status NetdNativeService::strictDNSCleartextWhitelist(const std::vector<std::string>& dnsAddrs) {
+    NETD_LOCKING_RPC(gCtls->strictCtrl.lock, PERM_NETWORK_STACK, PERM_MAINLINE_NETWORK_STACK);
+    int res = gCtls->strictCtrl.setDNSCleartextWhitelist(dnsAddrs);
     return statusFromErrcode(res);
 }
 

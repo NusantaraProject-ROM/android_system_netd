@@ -34,11 +34,14 @@ public:
     int setupIptablesHooks(void);
     int resetChains(void);
 
+    int setGlobalCleartextPenalty(StrictPenalty);
     int setUidCleartextPenalty(uid_t, StrictPenalty);
+    int setDNSCleartextWhitelist(const std::vector<std::string>& servers);
 
     static const char* LOCAL_OUTPUT;
     static const char* LOCAL_CLEAR_DETECT;
     static const char* LOCAL_CLEAR_CAUGHT;
+    static const char* LOCAL_CLEAR_CAUGHT_DNS_ACCEPT;
     static const char* LOCAL_PENALTY_LOG;
     static const char* LOCAL_PENALTY_REJECT;
     std::mutex lock;
