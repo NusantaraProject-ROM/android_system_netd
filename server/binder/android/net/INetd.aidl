@@ -1354,4 +1354,14 @@ interface INetd {
     *         cause of the failure.
     */
     void strictDNSCleartextWhitelist(in @utf8InCpp String[] dnsAddrs);
+
+   /**
+    * Set firewall rule for MAC address
+    *
+    * @param macAddr the address to allow/deny
+    * @param firewallRule either FIREWALL_RULE_ALLOW or FIREWALL_RULE_DENY
+    * @throws ServiceSpecificException in case of failure, with an error code indicating the
+    *         cause of the failure.
+    */
+    void firewallSetMACAddressRule(in @utf8InCpp String macAddr, int firewallRule);
 }
